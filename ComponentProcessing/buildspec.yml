@@ -1,0 +1,26 @@
+version: 0.2
+phases:
+   install:
+      runtime-versions:
+         docker: 18
+   pre_build:
+      commands:
+      - echo "Entered the pre-build phase"
+      - $(aws ecr get-login  --no-include-email --region $AWS_REGION)
+   build:
+      commands:
+      - echo "Entered build phase"
+      - cd ComponentProcessing
+      - mvn compile
+      - mvn clean package -Dmaven.test.skip=true
+      - echo " building docker image"
+      - docker build -t componentapp:latest .
+      - docker tag componentapp:latest 690236230744.dkr.ecr.us-east-2.amazonaws.com/return-service-registry:componentapp
+   post_build:
+      commands:
+      - echo "Entered the post-build phase"
+      - docker push 690236230744.dkr.ecr.us-east-2.amazonaws.com/return-service-registry:componentapp
+      - printf '[{"name":"componentapp-container","imageUri":"%s"}]' 690236230744.dkr.ecr.us-east-2.amazonaws.com/return-service-registry:componentapp>taskdefinition.json
+artifacts:
+   files:
+   - ComponentProcessing/taskdefinition.json
